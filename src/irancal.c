@@ -3,17 +3,64 @@
 #endif 
 
 #include <windows.h>
+#include <winuser.h>
+#include <windowsx.h>
 #include <strsafe.h>
 #include <stdio.h>
 
 const wchar_t g_szClassName[] = L"myWindowClass";
+HMENU menu;
+#define ID_MENU_EXIT 9001
+#define MY_TRAY_ICON_MESSAGE 0xBF00
+
+void init_menu()
+{
+    /*
+    menu = CreatePopupMenu();
+    if (menu)
+    {
+        MENUITEMINFO exit;
+        exit.cbSize = sizeof(MENUITEMINFO);
+        exit.fMask = MIIM_FTYPE;
+        exit.fType = MFT_STRING;
+
+        InsertMenuItemW(menu, 0, TRUE, &exit);
+    }
+    */
+    menu = CreatePopupMenu();
+    AppendMenu(menu, MF_STRING, ID_MENU_EXIT, L"E&xit");
+}
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch(msg)
     {
-        case WM_CONTEXTMENU:
+        case MY_TRAY_ICON_MESSAGE:
+            switch(LOWORD(lParam))
+            {
+                case WM_RBUTTONDOWN:
+                case WM_CONTEXTMENU:
+                    TrackPopupMenu(
+                            menu,
+                            TPM_RIGHTBUTTON | TPM_VERNEGANIMATION,
+                            GET_X_LPARAM(wParam),
+                            GET_Y_LPARAM(wParam),
+                            0,
+                            hwnd,
+                            NULL
+                    );
+                break;
+            }
         break;
+
+        case WM_COMMAND:
+            switch(wParam) {
+                case ID_MENU_EXIT:
+                    PostQuitMessage(0);
+                break;
+            }
+        break;
+
 
         case WM_CLOSE:
             DestroyWindow(hwnd);
@@ -72,6 +119,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     //ShowWindow(hwnd, nCmdShow);
     //UpdateWindow(hwnd);
 
+    init_menu();
+
 
 
 
@@ -83,10 +132,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     nid.hWnd = hwnd;
 
     nid.uID = 1;
-    nid.uFlags = NIF_TIP | NIF_ICON | NIF_SHOWTIP;
+    nid.uFlags = NIF_TIP | NIF_ICON | NIF_SHOWTIP | NIF_MESSAGE;
     nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
     StringCchCopy(nid.szTip, ARRAYSIZE(nid.szTip), L"TODO: display current date");
     nid.uVersion = NOTIFYICON_VERSION_4;
+    nid.uCallbackMessage = MY_TRAY_ICON_MESSAGE;
 
     Shell_NotifyIcon(NIM_ADD, &nid);
     Shell_NotifyIcon(NIM_SETVERSION, &nid);
