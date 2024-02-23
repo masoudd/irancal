@@ -7,6 +7,10 @@
 #include <windowsx.h>
 #include <strsafe.h>
 #include <stdio.h>
+#include <time.h>
+
+#include "jalali.h"
+#include "jtime.h"
 
 const wchar_t g_szClassName[] = L"myWindowClass";
 HMENU menu;
@@ -120,6 +124,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     //UpdateWindow(hwnd);
 
     init_menu();
+    wchar_t date_string[64] = {0};
+    char utf8_date_string[64] = {0};
+    time_t t;
+    time(&t);
+    struct jtm *j = jlocaltime(&t);
+//    jstrftime(utf8_date_string, 63, "%F %h", j);
+    jstrftime(utf8_date_string, 63, "%W %G", j);
+    MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, utf8_date_string, -1, date_string, 64);
+
 
 
 
@@ -134,7 +147,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     nid.uID = 1;
     nid.uFlags = NIF_TIP | NIF_ICON | NIF_SHOWTIP | NIF_MESSAGE;
     nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-    StringCchCopy(nid.szTip, ARRAYSIZE(nid.szTip), L"TODO: display current date");
+    StringCchCopy(nid.szTip, ARRAYSIZE(nid.szTip), date_string);
     nid.uVersion = NOTIFYICON_VERSION_4;
     nid.uCallbackMessage = MY_TRAY_ICON_MESSAGE;
 
