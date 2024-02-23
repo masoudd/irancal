@@ -1,4 +1,4 @@
-[screenshot](https://github.com/masoudd/irancal/blob/main/screenshot.png)
+![screenshot.png](screenshot.png)
 
 تاریخ هجری شمری را در ویندوز نشان می‌دهد
 
