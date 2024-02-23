@@ -1,6 +1,7 @@
 #ifndef UNICODE
 #define UNICODE
 #endif 
+#define _POSIX_C_SOURCE 1
 
 #include <windows.h>
 #include <winuser.h>
@@ -11,29 +12,87 @@
 
 #include "jalali.h"
 #include "jtime.h"
+/*
+ * How it works:
+ *  check every WM_TIME proc if last_day != current_day
+ *  and update tooltip string if yes.
+ *  also decide on how long next WM_TIME should be.
+ */
 
-const wchar_t g_szClassName[] = L"myWindowClass";
+/* Useful to change globals: */
+#define DATE_STRING_LENGTH 64 //How long is the tooltip we want to show
+BOOLEAN PERSIAN = TRUE; //Change to False if you want English as default
+#define PERSIAN_FORMAT "%W %G" // refer to jtime.c or jdate format docs
+#define ENGLISH_FORMAT "%F %h"
+/* ------------------------ */
+
+
+wchar_t date_string[DATE_STRING_LENGTH]; //this is what the mouse hover tooltip shows
+char utf8_date_string[DATE_STRING_LENGTH]; //holds what we get from libjalali
+int last_day;  // day was this last time we checked the date.
+time_t t;
+struct tm tm;
 HMENU menu;
-#define ID_MENU_EXIT 9001
+NOTIFYICONDATA nid;
+
+// these are random value, apparently that's how
+// it works. You just come up with something random
+// and hope it doesn't clash with something else
+const wchar_t g_szClassName[] = L"MyHopefullyUniqueWindowClass";
+#define ID_MENU_EXIT 9001  
 #define MY_TRAY_ICON_MESSAGE 0xBF00
+#define IDT_TIMER1 9009
+
+
+// updates it everytime called
+// expects you to call time(&t) before calling it
+void update_notification()
+{
+    struct jtm *j = jlocaltime(&t);
+    jstrftime(utf8_date_string, DATE_STRING_LENGTH-1,
+                (PERSIAN) ? PERSIAN_FORMAT : ENGLISH_FORMAT, j);
+    MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED,
+                utf8_date_string, -1, date_string, DATE_STRING_LENGTH);
+
+    StringCchCopy(nid.szTip, ARRAYSIZE(nid.szTip), date_string);
+    Shell_NotifyIcon(NIM_MODIFY, &nid);
+}
+
+BOOLEAN should_update()
+{
+    time(&t);
+    localtime_r(&t, &tm);
+    if (last_day != tm.tm_yday) {
+        last_day = tm.tm_yday;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+void init_notification(HWND hwnd)
+{
+    /* https://learn.microsoft.com/en-us/windows/win32/api/shellapi/ns-shellapi-notifyicondataa */
+    nid.cbSize = sizeof(NOTIFYICONDATA);
+    nid.hWnd = hwnd;
+
+    nid.uID = 1;
+    nid.uFlags = NIF_TIP | NIF_ICON | NIF_SHOWTIP | NIF_MESSAGE;
+    nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    StringCchCopy(nid.szTip, ARRAYSIZE(nid.szTip), date_string);
+    nid.uVersion = NOTIFYICON_VERSION_4;
+    nid.uCallbackMessage = MY_TRAY_ICON_MESSAGE;
+
+    Shell_NotifyIcon(NIM_ADD, &nid);
+    Shell_NotifyIcon(NIM_SETVERSION, &nid);
+}
 
 void init_menu()
 {
-    /*
     menu = CreatePopupMenu();
-    if (menu)
-    {
-        MENUITEMINFO exit;
-        exit.cbSize = sizeof(MENUITEMINFO);
-        exit.fMask = MIIM_FTYPE;
-        exit.fType = MFT_STRING;
-
-        InsertMenuItemW(menu, 0, TRUE, &exit);
-    }
-    */
-    menu = CreatePopupMenu();
-    AppendMenu(menu, MF_STRING, ID_MENU_EXIT, L"E&xit");
+    AppendMenu(menu, MF_STRING, ID_MENU_EXIT,
+            PERSIAN ? L"خروج" : L"E&xit");
 }
+
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -44,15 +103,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
                 case WM_RBUTTONDOWN:
                 case WM_CONTEXTMENU:
-                    TrackPopupMenu(
-                            menu,
-                            TPM_RIGHTBUTTON | TPM_VERNEGANIMATION,
-                            GET_X_LPARAM(wParam),
-                            GET_Y_LPARAM(wParam),
-                            0,
-                            hwnd,
-                            NULL
-                    );
+                    TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_VERNEGANIMATION,
+                            GET_X_LPARAM(wParam), GET_Y_LPARAM(wParam), 0, hwnd, NULL);
                 break;
             }
         break;
@@ -64,7 +116,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 break;
             }
         break;
-
 
         case WM_CLOSE:
             DestroyWindow(hwnd);
@@ -119,40 +170,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         return 0;
     }
 
-    /* just don't show the window */
-    //ShowWindow(hwnd, nCmdShow);
-    //UpdateWindow(hwnd);
-
     init_menu();
-    wchar_t date_string[64] = {0};
-    char utf8_date_string[64] = {0};
-    time_t t;
-    time(&t);
-    struct jtm *j = jlocaltime(&t);
-//    jstrftime(utf8_date_string, 63, "%F %h", j);
-    jstrftime(utf8_date_string, 63, "%W %G", j);
-    MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, utf8_date_string, -1, date_string, 64);
-
-
-
-
-
-/* NOTIFICATION */
-
-    /* https://learn.microsoft.com/en-us/windows/win32/api/shellapi/ns-shellapi-notifyicondataa */
-    NOTIFYICONDATA nid = {};
-    nid.cbSize = sizeof(NOTIFYICONDATA);
-    nid.hWnd = hwnd;
-
-    nid.uID = 1;
-    nid.uFlags = NIF_TIP | NIF_ICON | NIF_SHOWTIP | NIF_MESSAGE;
-    nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-    StringCchCopy(nid.szTip, ARRAYSIZE(nid.szTip), date_string);
-    nid.uVersion = NOTIFYICON_VERSION_4;
-    nid.uCallbackMessage = MY_TRAY_ICON_MESSAGE;
-
-    Shell_NotifyIcon(NIM_ADD, &nid);
-    Shell_NotifyIcon(NIM_SETVERSION, &nid);
+    init_notification(hwnd);
+    should_update();
+    update_notification();
 
     MSG msg = {};
     while (GetMessage(&msg, NULL, 0, 0) > 0) {
