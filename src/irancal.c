@@ -24,6 +24,7 @@
 BOOLEAN PERSIAN = TRUE; //Change to False if you want English as default
 #define PERSIAN_FORMAT "%W %G" // refer to jtime.c or jdate format docs
 #define ENGLISH_FORMAT "%F %h"
+#define CHECK_INTERVAL 3600000 // 1 hour
 /* ------------------------ */
 
 
@@ -117,6 +118,21 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             }
         break;
 
+        case WM_TIMER:
+            switch(wParam) {
+                case IDT_TIMER1:
+                    if (should_update()) {
+                        update_notification();
+                    }
+                    int interval = CHECK_INTERVAL;
+                    if (tm.tm_hour == 23) {
+                        interval /= 60; //in the last hour, check every minute
+                    }
+                    SetTimer(hwnd, IDT_TIMER1, interval, NULL);
+                break;
+            }
+        break;
+
         case WM_CLOSE:
             DestroyWindow(hwnd);
         break;
@@ -174,6 +190,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     init_notification(hwnd);
     should_update();
     update_notification();
+
+    SetTimer(hwnd, IDT_TIMER1, 60000, NULL); // start with 60 secs
 
     MSG msg = {};
     while (GetMessage(&msg, NULL, 0, 0) > 0) {
