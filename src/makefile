@@ -6,3 +6,5 @@ irancal.exe: irancal.c ${LIBJALALI.a}
 
 release: irancal.exe
 	strip irancal.exe
+
+.PHONY: release
