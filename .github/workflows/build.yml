@@ -1,0 +1,37 @@
+name: Build
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_windows:
+    runs-on: windows-latest
+    steps:
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+
+      - name: Checkout jcal
+        uses: actions/checkout@v4
+        with:
+          repository: 'masoudd/jcal'
+          ref: 'msys2_windows'
+          path: 'jcal'
+
+      - name: Build jcal
+        shell: msys2 {0}
+        run: |
+          uname -a
+          cd jcal/sources
+          bash ./autogen.sh && ./configure && make
+
+      - name: Checkout irancal
+      # disables git line ending conversion
+      #  run: git config --global core.autocrlf input
+        uses: actions/checkout@v4
+
+      - name: Build irancal
+        shell: msys2 {0}
+        run: |
+          cd irancal/src
+          make release
