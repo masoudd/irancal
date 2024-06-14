@@ -10,6 +10,10 @@ jobs:
     steps:
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
+        with:
+          install: >-
+            automake-wrapper
+            libtool
 
       - name: Checkout jcal
         uses: actions/checkout@v4
