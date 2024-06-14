@@ -16,6 +16,7 @@ jobs:
             automake-wrapper
             libtool
             autoconf-wrapper
+            mingw-w64-x86_64-gcc
 
       - name: Checkout jcal
         uses: actions/checkout@v4
