@@ -44,3 +44,9 @@ jobs:
         run: |
           cd irancal/src
           make release
+
+      - name: Upload what we got
+        uses: actions/upload-artifact@v4
+        with:
+          name: irancal
+          path: irancal/src/irancal.exe
