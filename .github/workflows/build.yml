@@ -25,19 +25,21 @@ jobs:
         with:
           repository: 'masoudd/jcal'
           ref: 'msys2_windows'
-          path: '../jcal'
+          path: 'jcal'
 
       - name: Build jcal
         shell: msys2 {0}
         run: |
           uname -a
-          cd ../jcal/sources
+          cd jcal/sources
           bash ./autogen.sh && ./configure && make
 
       - name: Checkout irancal
       # disables git line ending conversion
       #  run: git config --global core.autocrlf input
         uses: actions/checkout@v4
+        with:
+          path: 'irancal'
 
       - name: Build irancal
         shell: msys2 {0}
