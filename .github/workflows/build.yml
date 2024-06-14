@@ -25,13 +25,13 @@ jobs:
         with:
           repository: 'masoudd/jcal'
           ref: 'msys2_windows'
-          path: 'jcal'
+          path: '../jcal'
 
       - name: Build jcal
         shell: msys2 {0}
         run: |
           uname -a
-          cd jcal/sources
+          cd ../jcal/sources
           bash ./autogen.sh && ./configure && make
 
       - name: Checkout irancal
