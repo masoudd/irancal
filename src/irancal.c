@@ -124,6 +124,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
                 case WM_RBUTTONDOWN:
                 case WM_CONTEXTMENU:
+                    SetForegroundWindow(hwnd);
                     TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_VERNEGANIMATION,
                             GET_X_LPARAM(wParam), GET_Y_LPARAM(wParam), 0, hwnd, NULL);
 
