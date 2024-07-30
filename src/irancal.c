@@ -116,6 +116,7 @@ void init_menu()
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    static BOOL shown = FALSE;
     switch(msg)
     {
         case MY_TRAY_ICON_MESSAGE:
@@ -125,6 +126,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 case WM_CONTEXTMENU:
                     TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_VERNEGANIMATION,
                             GET_X_LPARAM(wParam), GET_Y_LPARAM(wParam), 0, hwnd, NULL);
+
+                break;
+
+                case WM_LBUTTONDOWN:
+                    if (shown) {
+                        ShowWindow(hwnd, SW_HIDE);
+                    } else {
+                        ShowWindow(hwnd, SW_SHOWNORMAL);
+                    }
+                    shown = !shown;
                 break;
             }
         break;
@@ -196,7 +207,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             g_szClassName,
             L"Iran Solar Hijri Calendar",
             WS_OVERLAPPEDWINDOW,
-            CW_USEDEFAULT, CW_USEDEFAULT, 240, 120,
+            CW_USEDEFAULT, CW_USEDEFAULT, 800, 600,
             NULL, NULL, hInstance, NULL);
     if(hwnd == NULL)
     {
@@ -205,6 +216,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         return 0;
     }
 
+    ShowWindow(hwnd, nCmdShow);
+    ShowWindow(hwnd, SW_HIDE); //don't show the window on start
     init_menu();
     init_notification(hwnd);
     should_update();
