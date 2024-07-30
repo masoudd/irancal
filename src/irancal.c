@@ -40,9 +40,9 @@
 
 /* Useful to change globals: */
 #define DATE_STRING_LENGTH 64 //How long is the tooltip we want to show
-BOOLEAN PERSIAN = TRUE; //Change to False if you want English as default
+BOOLEAN PERSIAN = TRUE; //Change to FALSE if you want English as default
 #define PERSIAN_FORMAT "%W %G" // refer to jtime.c or jdate format docs
-#define ENGLISH_FORMAT "%F %h"
+#define ENGLISH_FORMAT "%F %q"
 #define CHECK_INTERVAL 3600000 // 1 hour
 /* ------------------------ */
 
