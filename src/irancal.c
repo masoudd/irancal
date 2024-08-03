@@ -134,7 +134,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     if (shown) {
                         ShowWindow(hwnd, SW_HIDE);
                     } else {
-                        ShowWindow(hwnd, SW_SHOWNORMAL);
+                        BringWindowToTop(hwnd);
+                        ShowWindow(hwnd, SW_SHOW);
                     }
                     shown = !shown;
                 break;
