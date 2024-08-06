@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'masoudd/jcal'
-          ref: 'msys2_windows'
+          ref: 'master'
           path: 'jcal'
 
       - name: Build jcal
