@@ -45,6 +45,8 @@ BOOLEAN PERSIAN = TRUE; //Change to FALSE if you want English as default
 #define PERSIAN_FORMAT "%W %G" // refer to jtime.c or jdate format docs
 #define ENGLISH_FORMAT "%F %q"
 #define CHECK_INTERVAL 3600000 // 1 hour
+#define WIDTH 600
+#define HEIGHT 600
 /* ------------------------ */
 
 #define year_buf_length 3000
@@ -255,15 +257,15 @@ void init_window_content(HWND hwnd, HINSTANCE hInstance)
             TEXT("STATIC"),
             TEXT("Calendar goes here"),
             WS_CHILD | WS_VISIBLE | SS_LEFT,
+            20,
             10,
-            10,
-            780,
-            580,
+            WIDTH - 40,
+            HEIGHT - 20,
             hwnd,
             (HMENU) ID_MYSTATIC,
             hInstance,
             NULL);
-    HFONT hFont = (HFONT)GetStockObject(SYSTEM_FIXED_FONT);
+    HFONT hFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
     SendMessage(static_hwnd, WM_SETFONT, (WPARAM)hFont, FALSE);
 }
 
@@ -360,7 +362,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             g_szClassName,
             L"Iran Solar Hijri Calendar",
             WS_OVERLAPPEDWINDOW,
-            CW_USEDEFAULT, CW_USEDEFAULT, 800, 600,
+            CW_USEDEFAULT, CW_USEDEFAULT, WIDTH, HEIGHT,
             NULL, NULL, hInstance, NULL);
     if(hwnd == NULL)
     {
