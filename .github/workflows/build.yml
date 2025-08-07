@@ -33,7 +33,7 @@ jobs:
           uname -a
           mkdir neojcal-build;
           cd jcal/sources
-          bash ./autogen.sh && cd ../../neojcal-build && ..jcal/sources/configure && make
+          bash ./autogen.sh && cd ../../neojcal-build && ../jcal/sources/configure && make
 
       - name: Checkout irancal
       # disables git line ending conversion
