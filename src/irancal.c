@@ -32,6 +32,10 @@
 
 #include "jalali.h"
 #include "jtime.h"
+
+#define IRANCAL_VERSION "0.1"
+#define IRANCAL_VERSION_LEN 3
+
 /*
  * How it works:
  *  check every WM_TIME proc if last_day != current_day
@@ -122,7 +126,7 @@ void update_year_buf(int year)
 {
     static LPTSTR week =
         TEXT("Sh Ye Do Se Ch Pa Jo   Sh Ye Do Se Ch Pa Jo   Sh Ye Do Se Ch Pa Jo\n");
-    size_t week_len = 67; //lenth of the LPTSTR week
+    size_t week_len = 67; //length of the LPTSTR week
     // For finding which day of the week 1st of each month is.
     struct jtm temp_jtm = {.tm_mday=1, .tm_year=year,};
     int tm_wday_1st_of_months[12];
@@ -183,6 +187,28 @@ void update_year_buf(int year)
         }
         year_buf[index] = L'\n'; index++;
     }
+
+    year_buf[index] = L'\n'; index++;
+
+    static LPTSTR version =
+        TEXT("Irancal version: " IRANCAL_VERSION "\ngithub.com/masoudd/irancal\n");
+    size_t version_len = 17 + IRANCAL_VERSION_LEN + 28; //length of the version 
+    StringCchCopy(&year_buf[index], year_buf_length - index, version);
+    index += version_len;
+
+    year_buf[index] = L'\n'; index++;
+
+    static LPTSTR author =
+        TEXT("By Masoud Naservand masoudd.ir\n");
+    size_t author_len = 31; //length of the author
+    StringCchCopy(&year_buf[index], year_buf_length - index, author);
+    index += author_len;
+
+    static LPTSTR license =
+        TEXT("License: GPLv3\n");
+    size_t license_len = 15; //length of the author
+    StringCchCopy(&year_buf[index], year_buf_length - index, license);
+    index += license_len;
 
     year_buf[index] = L'\0';
     year_buf[year_buf_length - 1] = L'\0';
