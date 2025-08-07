@@ -31,8 +31,9 @@ jobs:
         shell: msys2 {0}
         run: |
           uname -a
+          mkdir neojcal-build;
           cd jcal/sources
-          bash ./autogen.sh && ./configure && make
+          bash ./autogen.sh && cd ../../neojcal-build && ..jcal/sources/configure && make
 
       - name: Checkout irancal
       # disables git line ending conversion
