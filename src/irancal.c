@@ -33,8 +33,8 @@
 #include "jalali.h"
 #include "jtime.h"
 
-#define IRANCAL_VERSION "0.1"
-#define IRANCAL_VERSION_LEN 3
+#define IRANCAL_VERSION "0.2.2"
+#define IRANCAL_VERSION_LEN 5
 
 /*
  * How it works:
