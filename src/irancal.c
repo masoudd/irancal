@@ -37,10 +37,13 @@
 #define IRANCAL_VERSION "0.2.2"
 #define IRANCAL_VERSION_LEN 5
 
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+
 /*
  * How it works:
- *  check every WM_TIME proc if last_day != current_day
- *  and update tooltip string and shown year calendar in window if yes.
+ *  every WM_TIME proc update tooltip string and shown year calendar in window.
  *  also decide on how long next WM_TIME should be.
  */
 
@@ -51,7 +54,7 @@ BOOLEAN PERSIAN = TRUE; //Change to FALSE if you want English as default
 #define ENGLISH_FORMAT "%F %q"
 #define CHECK_INTERVAL 3600000 // 1 hour
 #define WIDTH 600
-#define HEIGHT 600
+#define HEIGHT 800
 /* ------------------------ */
 
 #define year_buf_length 3000
@@ -75,14 +78,17 @@ LPCTSTR jalali_months_fa[] = {
 // how many spaces we need before the name of the month in the year table
 // + length of the name of the month to give to printf %*s as width
 // so that the name of the month is centered on top the 7 days of the week.
-int jalali_months_table_width_en[] = { 14, 24, 21, 11, 25, 24, 11, 24, 23, 11, 24, 23 };
-int jalali_months_table_width_fa[] = { 14, 24, 21, 11, 25, 24, 11, 24, 23, 11, 24, 23 };
-
+const int jalali_months_table_width_en[] = { 14, 24, 21, 11, 25, 24, 11, 24, 23, 11, 24, 23 };
+const int jalali_months_table_width_fa[] = { 14, 24, 21, 11, 25, 24, 11, 24, 23, 11, 24, 23 };
+LPCTSTR window_title_en = TEXT("Iran Solar Hijri Calendar");
+LPCTSTR window_title_fa = TEXT("تقویم هجری شمسی");
 // these are random value, apparently that's how
 // it works. You just come up with something random
 // and hope it doesn't clash with something else
 const wchar_t g_szClassName[] = L"MyHopefullyUniqueWindowClass";
 #define ID_MENU_EXIT 9001  
+#define ID_MENU_CHANGE_LANG 9002
+#define ID_MENU_TOGGLE_WINDOW 9003
 #define MY_TRAY_ICON_MESSAGE 0xBF00
 #define IDT_TIMER1 9009
 #define ID_MYSTATIC 9010
@@ -137,8 +143,8 @@ void update_year_buf(int year)
     
     static LPCTSTR week_fa =
         //TEXT("ش  ی  د  س  چ  پ  ج    ش  ی  د  س  چ  پ  ج    ش  ی  د  س  چ  پ  ج \n");
-		TEXT("ش  ی  د  س  چ  پ  ج     ش  ی  د  س  چ  پ  ج     ش  ی  د  س  چ  پ  ج ");
-//    static size_t week_len_fa = 67;
+        //TEXT("شن یک دو سه چه پن جم   شن یک دو سه چه پن جم     شن یک دو سه چه پن جم  \n");
+        TEXT("ش  ی  د  س  چ  پ  ج    ش  ی  د  س  چ  پ  ج    ش  ی  د  س  چ  پ  ج \n");
     static size_t week_len_fa = 0;
     if (week_len_fa == 0) {
         week_len_fa = lstrlen(week_fa);
@@ -150,7 +156,7 @@ void update_year_buf(int year)
 
 
     LPCTSTR *jalali_months = PERSIAN ? jalali_months_fa : jalali_months_en;
-    int *jalali_months_table_width = PERSIAN ? jalali_months_table_width_fa : jalali_months_table_width_en;
+    const int *jalali_months_table_width = PERSIAN ? jalali_months_table_width_fa : jalali_months_table_width_en;
     LPCTSTR week = PERSIAN ? week_fa : week_en;
     size_t week_len = PERSIAN ? week_len_fa : week_len_en;
     LPCTSTR *numbers = PERSIAN ? numbers_fa : numbers_en;
@@ -171,7 +177,14 @@ void update_year_buf(int year)
         year_buf[index] = L' ';
         index++;
     }
+    
+    static LPCTSTR number_en_to_fa = TEXT("۰۱۲۳۴۵۶۷۸۹");
     StringCchPrintf(&year_buf[index], year_buf_length - index, L"%d\n\n", year);
+    if (PERSIAN) {
+        for (size_t i = index; i < (index + 4); i++) {
+            year_buf[i] = number_en_to_fa[year_buf[i] - '0'];
+        }
+    }
     while(year_buf[index] != L'\0') { index++; }
 
     for (int row = 0; row < 4; row++) {
@@ -248,37 +261,30 @@ void update_year_buf(int year)
 
 void update_notification_and_window_content()
 {
+    if (DEBUG) {
+        fprintf(stderr, "update_notification_and_window_content():\n");
+        fprintf(stderr, "PERSIAN is %s\n", PERSIAN ? "TRUE":"FALSE");
+        fflush(stderr);
+    }
 
-    static int last_day = -1; // Day was this last time we checked the date.
-    static int last_year = -1; // Note the year we track is hijri shamsi.
     static time_t t;
     static struct jtm jtm;
     time(&t);
     localtime_r(&t, &tm);
-    if (last_day == tm.tm_yday) {
-        return;
-    }
-    last_day = tm.tm_yday;
     jlocaltime_r(&t, &jtm);
 
     TCHAR date_string[DATE_STRING_LENGTH]; //this is what the mouse hover tooltip shows
     char utf8_date_string[DATE_STRING_LENGTH]; //holds what we get from libjalali
-
     // notification
     jstrftime(utf8_date_string, DATE_STRING_LENGTH-1,
                 (PERSIAN) ? PERSIAN_FORMAT : ENGLISH_FORMAT, &jtm);
     MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED,
                 utf8_date_string, -1, date_string, DATE_STRING_LENGTH);
 
+
     StringCchCopy(nid.szTip, ARRAYSIZE(nid.szTip), date_string);
     Shell_NotifyIcon(NIM_MODIFY, &nid);
 
-    // window content
-    // only changes once a year
-    if (last_year == jtm.tm_year) {
-        return;
-    }
-    last_year = jtm.tm_year;
     update_year_buf(jtm.tm_year);
     SendMessage(static_hwnd, WM_SETTEXT, (WPARAM) 0, (LPARAM)year_buf);
 }
@@ -303,6 +309,10 @@ void init_notification(HWND hwnd)
 void init_menu()
 {
     menu = CreatePopupMenu();
+    AppendMenu(menu, MF_STRING, ID_MENU_TOGGLE_WINDOW,
+            PERSIAN ? TEXT("پیدا / پنهان") : TEXT("Show/Hide"));
+    AppendMenu(menu, MF_STRING, ID_MENU_CHANGE_LANG,
+            PERSIAN ? TEXT("English") : TEXT("فارسی"));
     AppendMenu(menu, MF_STRING, ID_MENU_EXIT,
             PERSIAN ? TEXT("خروج") : TEXT("E&xit"));
 }
@@ -367,6 +377,23 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
         case WM_COMMAND:
             switch(wParam) {
+                case ID_MENU_TOGGLE_WINDOW:
+                    if (shown) {
+                        ShowWindow(hwnd, SW_HIDE);
+                    } else {
+                        BringWindowToTop(hwnd);
+                        ShowWindow(hwnd, SW_SHOW);
+                    }
+                    shown = !shown;
+                break;
+                case ID_MENU_CHANGE_LANG:
+                    PERSIAN = !PERSIAN;
+                    DestroyMenu(menu);
+                    init_menu();
+                    update_notification_and_window_content();
+                    SetWindowText(hwnd,
+                            PERSIAN ? window_title_fa : window_title_en);
+                break;
                 case ID_MENU_EXIT:
                     PostQuitMessage(0);
                 break;
@@ -380,6 +407,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     int interval = CHECK_INTERVAL;
                     if (tm.tm_hour == 23) {
                         interval /= 60; //in the last hour, check every minute
+                    }
+                    if (DEBUG) {
+                        interval = 1000;
                     }
                     SetTimer(hwnd, IDT_TIMER1, interval, NULL);
                 break;
@@ -428,7 +458,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     hwnd = CreateWindowEx(
             WS_EX_CLIENTEDGE,
             g_szClassName,
-            L"Iran Solar Hijri Calendar",
+            PERSIAN ? window_title_fa : window_title_en,
             WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT, CW_USEDEFAULT, WIDTH, HEIGHT,
             NULL, NULL, hInstance, NULL);
@@ -446,7 +476,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     ShowWindow(hwnd, nCmdShow);
     ShowWindow(hwnd, SW_HIDE); //don't show the window on start
 
-    SetTimer(hwnd, IDT_TIMER1, 60000, NULL); // start with 60 secs
+    if (DEBUG) {
+        SetTimer(hwnd, IDT_TIMER1, 1000, NULL); // start with 1 secs
+    } else {
+        SetTimer(hwnd, IDT_TIMER1, 60000, NULL); // start with 60 secs
+    }
 
     MSG msg = {};
     while (GetMessage(&msg, NULL, 0, 0) > 0) {
