@@ -1,4 +1,4 @@
-/*
+﻿/*
 	Copyright (C) 2024  Masoud Naservand
 
 	This file is part of irancal.
@@ -21,6 +21,7 @@
 #define UNICODE
 #endif
 #define _POSIX_C_SOURCE 1
+#define STRICT
 
 #include <windows.h>
 #include <winuser.h>
@@ -61,16 +62,22 @@ struct tm tm;
 HMENU menu;
 NOTIFYICONDATA nid;
 HWND static_hwnd; // handle to the label (called static in win32 api)
-LPTSTR utf16_jalali_months[] = {
+LPCTSTR jalali_months_en[] = {
         TEXT("Farvardin"), TEXT("Ordibehesht"), TEXT("Khordaad"),
         TEXT("Tir"), TEXT("Mordaad"), TEXT("Shahrivar"),
         TEXT("Mehr"), TEXT("Aabaan"), TEXT("Aazar"),
         TEXT("Dey"), TEXT("Bahman"), TEXT("Esfand")};
+LPCTSTR jalali_months_fa[] = {
+        TEXT("فروردین"), TEXT("اردیبهشت"), TEXT("خرداد"),
+        TEXT("تیر"), TEXT("مرداد"), TEXT("شهریور"),
+        TEXT("مهر"), TEXT("آبان"), TEXT("آذر"),
+        TEXT("دی"), TEXT("بهمن"), TEXT("اسفند")};
 // how many spaces we need before the name of the month in the year table
 // + length of the name of the month to give to printf %*s as width
 // so that the name of the month is centered on top the 7 days of the week.
-int jalali_months_table_width[] = { 14, 24, 21, 11, 25, 24, 11, 24, 23, 11, 24, 23 };
-    
+int jalali_months_table_width_en[] = { 14, 24, 21, 11, 25, 24, 11, 24, 23, 11, 24, 23 };
+int jalali_months_table_width_fa[] = { 14, 24, 21, 11, 25, 24, 11, 24, 23, 11, 24, 23 };
+
 // these are random value, apparently that's how
 // it works. You just come up with something random
 // and hope it doesn't clash with something else
@@ -124,9 +131,30 @@ Sh Ye Do Se Ch Pa Jo   Sh Ye Do Se Ch Pa Jo   Sh Ye Do Se Ch Pa Jo
 // day of the week the 1st day of that month is.
 void update_year_buf(int year)
 {
-    static LPTSTR week =
+    static LPCTSTR week_en =
         TEXT("Sh Ye Do Se Ch Pa Jo   Sh Ye Do Se Ch Pa Jo   Sh Ye Do Se Ch Pa Jo\n");
-    size_t week_len = 67; //length of the LPTSTR week
+    static size_t week_len_en = 67; //length of the LPTSTR week
+    
+    static LPCTSTR week_fa =
+        //TEXT("ش  ی  د  س  چ  پ  ج    ش  ی  د  س  چ  پ  ج    ش  ی  د  س  چ  پ  ج \n");
+		TEXT("ش  ی  د  س  چ  پ  ج     ش  ی  د  س  چ  پ  ج     ش  ی  د  س  چ  پ  ج ");
+//    static size_t week_len_fa = 67;
+    static size_t week_len_fa = 0;
+    if (week_len_fa == 0) {
+        week_len_fa = lstrlen(week_fa);
+    }
+
+    static LPCTSTR numbers_en[] = {TEXT(" 0"), TEXT(" 1"), TEXT(" 2"), TEXT(" 3"), TEXT(" 4"), TEXT(" 5"), TEXT(" 6"), TEXT(" 7"), TEXT(" 8"), TEXT(" 9"), TEXT("10"), TEXT("11"), TEXT("12"), TEXT("13"), TEXT("14"), TEXT("15"), TEXT("16"), TEXT("17"), TEXT("18"), TEXT("19"), TEXT("20"), TEXT("21"), TEXT("22"), TEXT("23"), TEXT("24"), TEXT("25"), TEXT("26"), TEXT("27"), TEXT("28"), TEXT("29"), TEXT("30"), TEXT("31"), TEXT("32")};
+    static LPCTSTR numbers_fa[] = {TEXT(" ۰"), TEXT(" ۱"), TEXT(" ۲"), TEXT(" ۳"), TEXT(" ۴"), TEXT(" ۵"), TEXT(" ۶"), TEXT(" ۷"), TEXT(" ۸"), TEXT(" ۹"), TEXT("۱۰"), TEXT("۱۱"), TEXT("۱۲"), TEXT("۱۳"), TEXT("۱۴"), TEXT("۱۵"), TEXT("۱۶"), TEXT("۱۷"), TEXT("۱۸"), TEXT("۱۹"), TEXT("۲۰"), TEXT("۲۱"), TEXT("۲۲"), TEXT("۲۳"), TEXT("۲۴"), TEXT("۲۵"), TEXT("۲۶"), TEXT("۲۷"), TEXT("۲۸"), TEXT("۲۹"), TEXT("۳۰"), TEXT("۳۱"), TEXT("۳۲")};
+
+
+
+    LPCTSTR *jalali_months = PERSIAN ? jalali_months_fa : jalali_months_en;
+    int *jalali_months_table_width = PERSIAN ? jalali_months_table_width_fa : jalali_months_table_width_en;
+    LPCTSTR week = PERSIAN ? week_fa : week_en;
+    size_t week_len = PERSIAN ? week_len_fa : week_len_en;
+    LPCTSTR *numbers = PERSIAN ? numbers_fa : numbers_en;
+    
     // For finding which day of the week 1st of each month is.
     struct jtm temp_jtm = {.tm_mday=1, .tm_year=year,};
     int tm_wday_1st_of_months[12];
@@ -150,9 +178,9 @@ void update_year_buf(int year)
         // Print name of the months
         StringCchPrintf(&year_buf[index], year_buf_length - index,
                 L"%*s%*s%*s\n",
-                jalali_months_table_width[row * 3 + 0], utf16_jalali_months[row * 3 + 0],
-                jalali_months_table_width[row * 3 + 1], utf16_jalali_months[row * 3 + 1],
-                jalali_months_table_width[row * 3 + 2], utf16_jalali_months[row * 3 + 2]
+                jalali_months_table_width[row * 3 + 0], jalali_months[row * 3 + 0],
+                jalali_months_table_width[row * 3 + 1], jalali_months[row * 3 + 1],
+                jalali_months_table_width[row * 3 + 2], jalali_months[row * 3 + 2]
                 );
         while(year_buf[index] != L'\0') { index++; }
         StringCchCopy(&year_buf[index], year_buf_length - index, week);
@@ -174,9 +202,13 @@ void update_year_buf(int year)
                         year_buf[index] = L' '; index++;
                     } else {
                         printed_days_month[column]++;
+                        /*
                         StringCchPrintf(&year_buf[index], year_buf_length - index,
                                 L"%2d ", printed_days_month[column]);
-                        index += 3;
+                        */
+                        StringCchCopy(&year_buf[index], year_buf_length - index, numbers[printed_days_month[column]]); 
+                        index += 2;
+                        year_buf[index] = L' '; index++;
                     }
                 }
                 // two spaces between each 'column'.
@@ -291,7 +323,17 @@ void init_window_content(HWND hwnd, HINSTANCE hInstance)
             (HMENU) ID_MYSTATIC,
             hInstance,
             NULL);
-    HFONT hFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
+    int ret_addfont = AddFontResource(TEXT("Vazir-Code.ttf"));
+    HFONT hFont;
+    if (ret_addfont == 0) {
+        fprintf(stderr, "Error: Font file not found: Vazir-Code.ttf\n");
+        fflush(stderr);
+        hFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
+    } else {
+        hFont = CreateFont(0, 0, 0, 0, 0, FALSE, FALSE, FALSE, ARABIC_CHARSET,
+                OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+                /* DEFAULT_PITCH */ FIXED_PITCH|FF_DONTCARE, TEXT("Vazir Code"));
+    }
     SendMessage(static_hwnd, WM_SETFONT, (WPARAM)hFont, FALSE);
 }
 
