@@ -307,6 +307,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     static BOOL shown = FALSE;
     switch(msg)
     {
+	case WM_POWERBROADCAST:
+	    if (wParam == PBT_APMRESUMEAUTOMATIC) {
+		debug("Received resume from suspend notification");
+		update_notification_and_window_content();
+	    }
+	break;
+
         case MY_TRAY_ICON_MESSAGE:
             switch(LOWORD(lParam))
             {
@@ -413,13 +420,36 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     SetTimer(hwnd, IDT_TIMER1, 60000, NULL); // start with 60 secs
 
+    // Need the handle to unregister on exit
+    HPOWERNOTIFY powernotifyhwnd = RegisterSuspendResumeNotification(hwnd, DEVICE_NOTIFY_WINDOW_HANDLE);
+    if (powernotifyhwnd == NULL) {
+	debug("Failed to register for suspend resume notification");
+    } else {
+	debug("Registered for suspend resume notification");
+    }
+
     MSG msg = {};
     while (GetMessage(&msg, NULL, 0, 0) > 0) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-    debug("exiting...");
+    debug("Exiting...");
 
     Shell_NotifyIcon(NIM_DELETE, &nid);
+
+    if(powernotifyhwnd) {
+	if(UnregisterSuspendResumeNotification(powernotifyhwnd) == 0) {
+	    debug("Failed to unregister from suspend resume notification");
+	} else {
+	    debug("Unregistered from suspend resume notification");
+	}
+    }
+
+    if(KillTimer(hwnd, IDT_TIMER1) == 0) {
+	debug("Failed to kill timer IDT_TIMER1");
+    } else {
+	debug("Killed timer IDT_TIMER1");
+    }
+
     return 0;
 }
