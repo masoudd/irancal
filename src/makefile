@@ -5,7 +5,7 @@ irancal.exe: irancal.c ${LIBJALALI.a}
 	gcc -I${LIBJALALIPATH} irancal.c ${LIBJALALI.a} -o irancal.exe -municode -Wall -Os -Wl,--subsystem,windows -lgdi32
 
 debug: irancal.c ${LIBJALALI.a}
-	gcc -I${LIBJALALIPATH} irancal.c ${LIBJALALI.a} -o debug_irancal.exe -municode -Wall -Os -Wl,--subsystem,windows -lgdi32 -DDEBUG
+	gcc -I${LIBJALALIPATH} irancal.c ${LIBJALALI.a} -o debug_irancal.exe -municode -Wall -g -Og -Wl,--subsystem,windows -lgdi32 -DDEBUG
 release: irancal.exe
 	strip irancal.exe
 clean:
