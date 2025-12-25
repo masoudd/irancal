@@ -115,8 +115,15 @@ Sh Ye Do Se Ch Pa Jo   Sh Ye Do Se Ch Pa Jo   Sh Ye Do Se Ch Pa Jo
 15 16 17 18 19 20 21   13 14 15 16 17 18 19   11 12 13 14 15 16 17
 22 23 24 25 26 27 28   20 21 22 23 24 25 26   18 19 20 21 22 23 24
 29 30                  27 28 29 30            25 26 27 28 29      
-
 */
+
+void debug(char *str)
+{
+#ifdef DEBUG
+    fprintf(stderr, "DEBUG: %s\n", str);
+#endif
+}
+
 // Use libjalali api to make a representation of current hijri shamsi year.
 // A table with 4 rows and 3 columns with each cell being a month.
 // Each month is a smaller table with 7 columns (month_column) and
@@ -411,6 +418,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
+    debug("exiting...");
 
     Shell_NotifyIcon(NIM_DELETE, &nid);
     return 0;
