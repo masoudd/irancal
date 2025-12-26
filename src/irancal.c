@@ -191,9 +191,9 @@ void update_year_buf(int year)
         // Print name of the months
         StringCchPrintf(&year_buf[index], year_buf_length - index,
                 L"%*s%*s%*s\n",
-                jalali_months_table_width[row * 3 + 0], jalali_months[row * 3 + 0],
+                jalali_months_table_width[row * 3 + ((PERSIAN)?2:0)], jalali_months[row * 3 + ((PERSIAN)?2:0)],
                 jalali_months_table_width[row * 3 + 1], jalali_months[row * 3 + 1],
-                jalali_months_table_width[row * 3 + 2], jalali_months[row * 3 + 2]
+                jalali_months_table_width[row * 3 + ((PERSIAN)?0:2)], jalali_months[row * 3 + ((PERSIAN)?0:2)]
                 );
         while(year_buf[index] != L'\0') { index++; }
         StringCchCopy(&year_buf[index], year_buf_length - index, week);
