@@ -54,7 +54,7 @@ BOOLEAN PERSIAN = TRUE; //Change to FALSE if you want English as default
 #define ENGLISH_FORMAT "%F %q"
 #define CHECK_INTERVAL 3600000 // 1 hour
 #define WIDTH 600
-#define HEIGHT 800
+#define HEIGHT 900
 /* ------------------------ */
 
 #define month_buf_length 200 
@@ -82,6 +82,10 @@ LPCTSTR jalali_months_fa[] = {
 // so that the name of the month is centered on top the 7 days of the week.
 LPCTSTR window_title_en = TEXT("Iran Solar Hijri Calendar");
 LPCTSTR window_title_fa = TEXT("تقویم هجری شمسی");
+
+// need global handle to the font to call DeleteObject on it on exit.
+HFONT hFont;
+
 // these are random value, apparently that's how
 // it works. You just come up with something random
 // and hope it doesn't clash with something else
@@ -347,7 +351,6 @@ void init_window_content(HWND hwnd, HINSTANCE hInstance)
 	    NULL);
 
     int ret_addfont = AddFontResource(TEXT("Vazir-Code-Extra-Height.ttf"));
-    HFONT hFont;
     if (ret_addfont == 0) {
         fprintf(stderr, "Error: Font file not found: Vazir-Code-Extra-Height.ttf\n");
         fflush(stderr);
@@ -419,7 +422,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                             PERSIAN ? window_title_fa : window_title_en);
                 break;
                 case ID_MENU_EXIT:
-                    PostQuitMessage(0);
+		    DestroyWindow(hwnd);
                 break;
             }
         break;
@@ -552,13 +555,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	}
     }
 
-    if(KillTimer(hwnd, IDT_TIMER1) == 0) {
-	fprintf(stderr, "Failed to kill timer IDT_TIMER1");
-    } else {
-	if (DEBUG) {
-	    fprintf(stderr, "Killed timer IDT_TIMER1");
-	}
-    }
+
+    DeleteObject(hFont);
 
     return 0;
 }
