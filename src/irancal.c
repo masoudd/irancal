@@ -57,14 +57,16 @@ BOOLEAN PERSIAN = TRUE; //Change to FALSE if you want English as default
 #define HEIGHT 800
 /* ------------------------ */
 
-#define year_buf_length 3000
-TCHAR year_buf[year_buf_length];
+#define month_buf_length 200 
+TCHAR month_buf[month_buf_length];
 struct tm tm;
 
 
 HMENU menu;
 NOTIFYICONDATA nid;
-HWND static_hwnd; // handle to the label (called static in win32 api)
+HWND static_hwnd_months[12]; // handle to the label (called static in win32 api)
+HWND static_hwnd_yeartitle;
+HWND static_hwnd_credits;
 LPCTSTR jalali_months_en[] = {
         TEXT("Farvardin"), TEXT("Ordibehesht"), TEXT("Khordaad"),
         TEXT("Tir"), TEXT("Mordaad"), TEXT("Shahrivar"),
@@ -78,8 +80,6 @@ LPCTSTR jalali_months_fa[] = {
 // how many spaces we need before the name of the month in the year table
 // + length of the name of the month to give to printf %*s as width
 // so that the name of the month is centered on top the 7 days of the week.
-const int jalali_months_table_width_en[] = { 14, 24, 21, 11, 25, 24, 11, 24, 23, 11, 24, 23 };
-const int jalali_months_table_width_fa[] = { 14, 24, 21, 11, 25, 24, 11, 24, 23, 11, 24, 23 };
 LPCTSTR window_title_en = TEXT("Iran Solar Hijri Calendar");
 LPCTSTR window_title_fa = TEXT("تقویم هجری شمسی");
 // these are random value, apparently that's how
@@ -91,7 +91,6 @@ const wchar_t g_szClassName[] = L"MyHopefullyUniqueWindowClass";
 #define ID_MENU_TOGGLE_WINDOW 9003
 #define MY_TRAY_ICON_MESSAGE 0xBF00
 #define IDT_TIMER1 9009
-#define ID_MYSTATIC 9010
 
 /* This is what I want it to look like at the end.
  * Same as what `jcal -y` prints:
@@ -130,133 +129,78 @@ Sh Ye Do Se Ch Pa Jo   Sh Ye Do Se Ch Pa Jo   Sh Ye Do Se Ch Pa Jo
 29 30                  27 28 29 30            25 26 27 28 29      
 
 */
-// Use libjalali api to make a representation of current hijri shamsi year.
-// A table with 4 rows and 3 columns with each cell being a month.
-// Each month is a smaller table with 7 columns (month_column) and
+// Use libjalali api to make a representation of a hijri shamsi month in given year.
+// Each month is a table with 7 columns and
 // 5 or 6 rows (month_row) depending on length of month and which
 // day of the week the 1st day of that month is.
-void update_year_buf(int year)
+void update_month_buf(int year, int month)
 {
-    static LPCTSTR week_en =
-        TEXT("Sh Ye Do Se Ch Pa Jo   Sh Ye Do Se Ch Pa Jo   Sh Ye Do Se Ch Pa Jo\n");
-    static size_t week_len_en = 67; //length of the LPTSTR week
+    static LPCTSTR week_en = TEXT("Sh Ye Do Se Ch Pa Jo\n");
+    static size_t week_len_en = 21; //length of the LPTSTR week
     
-    static LPCTSTR week_fa =
-        //TEXT("ش  ی  د  س  چ  پ  ج    ش  ی  د  س  چ  پ  ج    ش  ی  د  س  چ  پ  ج \n");
-        //TEXT("شن یک دو سه چه پن جم   شن یک دو سه چه پن جم     شن یک دو سه چه پن جم  \n");
-        TEXT("ش  ی  د  س  چ  پ  ج    ش  ی  د  س  چ  پ  ج    ش  ی  د  س  چ  پ  ج \n");
-    static size_t week_len_fa = 0;
-    if (week_len_fa == 0) {
-        week_len_fa = lstrlen(week_fa);
-    }
+    static LPCTSTR week_fa = TEXT("ج  پ  چ  س  د  ی  ش\n");
+    static size_t week_len_fa = 20;
 
     static LPCTSTR numbers_en[] = {TEXT(" 0"), TEXT(" 1"), TEXT(" 2"), TEXT(" 3"), TEXT(" 4"), TEXT(" 5"), TEXT(" 6"), TEXT(" 7"), TEXT(" 8"), TEXT(" 9"), TEXT("10"), TEXT("11"), TEXT("12"), TEXT("13"), TEXT("14"), TEXT("15"), TEXT("16"), TEXT("17"), TEXT("18"), TEXT("19"), TEXT("20"), TEXT("21"), TEXT("22"), TEXT("23"), TEXT("24"), TEXT("25"), TEXT("26"), TEXT("27"), TEXT("28"), TEXT("29"), TEXT("30"), TEXT("31"), TEXT("32")};
     static LPCTSTR numbers_fa[] = {TEXT(" ۰"), TEXT(" ۱"), TEXT(" ۲"), TEXT(" ۳"), TEXT(" ۴"), TEXT(" ۵"), TEXT(" ۶"), TEXT(" ۷"), TEXT(" ۸"), TEXT(" ۹"), TEXT("۱۰"), TEXT("۱۱"), TEXT("۱۲"), TEXT("۱۳"), TEXT("۱۴"), TEXT("۱۵"), TEXT("۱۶"), TEXT("۱۷"), TEXT("۱۸"), TEXT("۱۹"), TEXT("۲۰"), TEXT("۲۱"), TEXT("۲۲"), TEXT("۲۳"), TEXT("۲۴"), TEXT("۲۵"), TEXT("۲۶"), TEXT("۲۷"), TEXT("۲۸"), TEXT("۲۹"), TEXT("۳۰"), TEXT("۳۱"), TEXT("۳۲")};
-
-
-
+//
     LPCTSTR *jalali_months = PERSIAN ? jalali_months_fa : jalali_months_en;
-    const int *jalali_months_table_width = PERSIAN ? jalali_months_table_width_fa : jalali_months_table_width_en;
     LPCTSTR week = PERSIAN ? week_fa : week_en;
     size_t week_len = PERSIAN ? week_len_fa : week_len_en;
     LPCTSTR *numbers = PERSIAN ? numbers_fa : numbers_en;
     
-    // For finding which day of the week 1st of each month is.
-    struct jtm temp_jtm = {.tm_mday=1, .tm_year=year,};
-    int tm_wday_1st_of_months[12];
+    // For finding which day of the week 1st of the month is.
+    struct jtm temp_jtm = {.tm_mday=1, .tm_mon=month, .tm_year=year,};
+    int tm_wday_1st_of_month;
+    int days_in_month;
+
+    jalali_update(&temp_jtm);
+    tm_wday_1st_of_month = temp_jtm.tm_wday;
+    days_in_month = jalali_year_month_days(year, month);
+
+    // Zero everything
+    for (int i = 0; i < month_buf_length; i++) {
+	month_buf[i] = L'\0';
+    }
+
     size_t index = 0;
-    int days_in_month[12];
+    // Print name of the month
+    StringCchPrintf(&month_buf[index], month_buf_length - index, TEXT("%s\n"), jalali_months[month]);
+    while(month_buf[index] != L'\0') { index++; }
+    // Print days of week name
+    StringCchCopy(&month_buf[index], month_buf_length - index, week);
+    index += week_len;
 
-    for (int i = 0; i < 12; i++) {
-        temp_jtm.tm_mon = i;
-        jalali_update(&temp_jtm);
-        tm_wday_1st_of_months[i] = temp_jtm.tm_wday;
-        days_in_month[i] = jalali_year_month_days(year, i);
+    // Print days of the month
+    // Print spaces before first day of the month to reach the correct weekday
+    for (int i = 0; i < tm_wday_1st_of_month; i++) {
+	month_buf[index] = L' '; index++;
+	month_buf[index] = L' '; index++;
+	month_buf[index] = L' '; index++;
     }
-    for (int i = 0; i < 30; i++) {
-        year_buf[index] = L' ';
-        index++;
+    int month_column = tm_wday_1st_of_month;
+    for (int day = 1; day <= days_in_month; day++) {
+	
+	StringCchCopy(&month_buf[index], month_buf_length - index, numbers[day]);
+	index += 2; // is it still 2 for persian chars?
+	month_column++;
+	if (month_column >= 7) {
+	    month_column = 0;
+	    month_buf[index] = L'\n'; index++;
+	} else {
+	    month_buf[index] = L' '; index++;
+	}
     }
-    
-    static LPCTSTR number_en_to_fa = TEXT("۰۱۲۳۴۵۶۷۸۹");
-    StringCchPrintf(&year_buf[index], year_buf_length - index, L"%d\n\n", year);
-    if (PERSIAN) {
-        for (size_t i = index; i < (index + 4); i++) {
-            year_buf[i] = number_en_to_fa[year_buf[i] - '0'];
-        }
-    }
-    while(year_buf[index] != L'\0') { index++; }
-
-    for (int row = 0; row < 4; row++) {
-        // Print name of the months
-        StringCchPrintf(&year_buf[index], year_buf_length - index,
-                L"%*s%*s%*s\n",
-                jalali_months_table_width[row * 3 + ((PERSIAN)?2:0)], jalali_months[row * 3 + ((PERSIAN)?2:0)],
-                jalali_months_table_width[row * 3 + 1], jalali_months[row * 3 + 1],
-                jalali_months_table_width[row * 3 + ((PERSIAN)?0:2)], jalali_months[row * 3 + ((PERSIAN)?0:2)]
-                );
-        while(year_buf[index] != L'\0') { index++; }
-        StringCchCopy(&year_buf[index], year_buf_length - index, week);
-        index += week_len;
-
-        // Print 3 months row by row (month_row) until all 3 months (column) are done.
-        int printed_days_month[3] = {0, 0, 0};
-        while (printed_days_month[0] < days_in_month[row * 3 + 0] &&
-               printed_days_month[1] < days_in_month[row * 3 + 1] &&
-               printed_days_month[2] < days_in_month[row * 3 + 2]) {
-            for (int column = 0; column < 3; column++) {
-                int month = (row * 3) + column;
-                for (int month_column = 0; month_column < 7; month_column++) {
-                    if ((printed_days_month[column] == 0 && tm_wday_1st_of_months[month] > month_column) ||
-                       (printed_days_month[column] >= days_in_month[month])) {
-                        //three spaces
-                        year_buf[index] = L' '; index++;
-                        year_buf[index] = L' '; index++;
-                        year_buf[index] = L' '; index++;
-                    } else {
-                        printed_days_month[column]++;
-                        /*
-                        StringCchPrintf(&year_buf[index], year_buf_length - index,
-                                L"%2d ", printed_days_month[column]);
-                        */
-                        StringCchCopy(&year_buf[index], year_buf_length - index, numbers[printed_days_month[column]]); 
-                        index += 2;
-                        year_buf[index] = L' '; index++;
-                    }
-                }
-                // two spaces between each 'column'.
-                year_buf[index] = L' '; index++;
-                year_buf[index] = L' '; index++;
-            }
-            year_buf[index] = L'\n'; index++;
-        }
-        year_buf[index] = L'\n'; index++;
+    // fill out the last line
+    for (int i = (7 - month_column) * 3 - 1; (month_column > 0) && (i > 0); i-- ) {
+	month_buf[index] = L' '; index++;
     }
 
-    year_buf[index] = L'\n'; index++;
-
-    static LPTSTR version =
-        TEXT("Irancal version: " IRANCAL_VERSION "\ngithub.com/masoudd/irancal\n");
-    size_t version_len = 17 + IRANCAL_VERSION_LEN + 28; //length of the version 
-    StringCchCopy(&year_buf[index], year_buf_length - index, version);
-    index += version_len;
-
-    year_buf[index] = L'\n'; index++;
-
-    static LPTSTR author =
-        TEXT("By Masoud Naservand masoudd.ir\n");
-    size_t author_len = 31; //length of the author
-    StringCchCopy(&year_buf[index], year_buf_length - index, author);
-    index += author_len;
-
-    static LPTSTR license =
-        TEXT("License: GPLv3\n");
-    size_t license_len = 15; //length of the author
-    StringCchCopy(&year_buf[index], year_buf_length - index, license);
-    index += license_len;
-
-    year_buf[index] = L'\0';
-    year_buf[year_buf_length - 1] = L'\0';
+    month_buf[index] = L'\0';
+    month_buf[month_buf_length - 1] = L'\0';
+    if (DEBUG) {
+        fprintf(stderr, "update_month_buf(year=%d, month=%d) returned:\n%ls\n", year, month, month_buf);
+    }
 }
 
 void update_notification_and_window_content()
@@ -285,8 +229,20 @@ void update_notification_and_window_content()
     StringCchCopy(nid.szTip, ARRAYSIZE(nid.szTip), date_string);
     Shell_NotifyIcon(NIM_MODIFY, &nid);
 
-    update_year_buf(jtm.tm_year);
-    SendMessage(static_hwnd, WM_SETTEXT, (WPARAM) 0, (LPARAM)year_buf);
+    for (int i = 0; i < 12; i++) {
+	update_month_buf(jtm.tm_year, i);
+	SendMessage(static_hwnd_months[i], WM_SETTEXT, (WPARAM) 0, (LPARAM)month_buf);
+    }
+
+    static LPCTSTR number_en_to_fa = TEXT("۰۱۲۳۴۵۶۷۸۹");
+    TCHAR year_string[6] = {0};
+    StringCchPrintf(&year_string[0], 6, TEXT("%d"), jtm.tm_year);
+    if (PERSIAN) {
+	for (size_t i = 0; i < 6 && year_string[i]; i++) {
+	    year_string[i] = number_en_to_fa[year_string[i] - '0'];
+	}
+    }
+    SendMessage(static_hwnd_yeartitle, WM_SETTEXT, (WPARAM) 0, (LPARAM)year_string);
 }
 
 void init_notification(HWND hwnd)
@@ -321,30 +277,91 @@ void init_menu()
 //show the year calendar in.
 void init_window_content(HWND hwnd, HINSTANCE hInstance)
 {
-    static_hwnd = CreateWindow(
-            TEXT("STATIC"),
-            TEXT("Calendar goes here"),
-            WS_CHILD | WS_VISIBLE | SS_LEFT,
-            20,
-            10,
-            WIDTH - 40,
-            HEIGHT - 20,
-            hwnd,
-            (HMENU) ID_MYSTATIC,
-            hInstance,
-            NULL);
-    int ret_addfont = AddFontResource(TEXT("Vazir-Code.ttf"));
+
+    static_hwnd_yeartitle = CreateWindow(
+	TEXT("STATIC"),
+	TEXT("yeartitle"),
+	WS_CHILD | WS_VISIBLE | SS_CENTER,
+	0,
+	10,
+	WIDTH,
+	30,
+	hwnd,
+	NULL,
+	hInstance,
+	NULL);
+/*
+ ┌──────────────────────────────┐
+ │   ▲50       year             │
+ │   ▼                          │
+ │  ┌──────┐ ┌──────┐ ┌──────┐  │
+ │20│      │ │      │ │      │20│
+ │◄►│      │ │      │ │      │◄►│
+ │  └──────┘ └──────┘ └──────┘  │
+ │  ┌──────┐ ┌──────┐ ┌──────┐  │
+ │  │      │ │      │ │      │  │
+ │  │      │ │      │ │      │  │
+ │  └──────┘ └──────┘ └──────┘  │
+ │  ┌──────┐ ┌──────┐ ┌──────┐  │
+ │  │      │ │      │ │      │  │
+ │  │      │ │      │ │      │  │
+ │  └──────┘ └──────┘ └──────┘  │
+ │  ┌──────┐ ┌──────┐ ┌──────┐  │
+ │  │      │ │      │ │      │  │
+ │  │      │ │      │ │      │  │
+ │  └──────┘ └──────┘ └──────┘  │
+ │             ▲                │
+ │   credits   │150             │
+ │             │                │
+ │             ▼                │
+ └──────────────────────────────┘
+
+*/
+    TCHAR text[10] = {0};
+    for (int i = 0; i < 12; i++) {
+	StringCchPrintf(text, 10, TEXT("month %d"), i);
+	static_hwnd_months[i] = CreateWindow(
+		TEXT("STATIC"),
+		text,
+		WS_CHILD | WS_VISIBLE | SS_CENTER,
+		20 + (i % 3) * ((WIDTH - 40)/3),
+		50 + (i / 3) * ((HEIGHT - 200)/4),
+		(WIDTH - 40)/3,
+		(HEIGHT - 200)/4,
+		hwnd,
+		NULL,
+		hInstance,
+		NULL);
+    }
+    static_hwnd_credits = CreateWindow(
+	    TEXT("STATIC"),
+	    TEXT("Irancal version: " IRANCAL_VERSION "\ngithub.com/masoudd/irancal\nBy Masoud Naservand masoudd.ir\nLicense: GPLv3"),
+	    WS_CHILD | WS_VISIBLE | SS_LEFT,
+	    20,
+	    HEIGHT - 150,
+	    WIDTH - 40,
+	    150,
+	    hwnd,
+	    NULL,
+	    hInstance,
+	    NULL);
+
+    int ret_addfont = AddFontResource(TEXT("Vazir-Code-Extra-Height.ttf"));
     HFONT hFont;
     if (ret_addfont == 0) {
-        fprintf(stderr, "Error: Font file not found: Vazir-Code.ttf\n");
+        fprintf(stderr, "Error: Font file not found: Vazir-Code-Extra-Height.ttf\n");
         fflush(stderr);
         hFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
     } else {
-        hFont = CreateFont(0, 0, 0, 0, 0, FALSE, FALSE, FALSE, ARABIC_CHARSET,
-                OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
-                /* DEFAULT_PITCH */ FIXED_PITCH|FF_DONTCARE, TEXT("Vazir Code"));
+        hFont = CreateFont(20, 0, 0, 0, 0, FALSE, FALSE, FALSE, ARABIC_CHARSET,
+                OUT_DEFAULT_PRECIS, OUT_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+                /* DEFAULT_PITCH */ FIXED_PITCH|FF_DONTCARE, TEXT("Vazir Code Extra Height"));
     }
-    SendMessage(static_hwnd, WM_SETFONT, (WPARAM)hFont, FALSE);
+    for (int i = 0; i < 12; i++) {
+	SendMessage(static_hwnd_months[i], WM_SETFONT, (WPARAM)hFont, FALSE);
+    }
+    SendMessage(static_hwnd_yeartitle, WM_SETFONT, (WPARAM)hFont, FALSE);
+    SendMessage(static_hwnd_credits, WM_SETFONT, (WPARAM)hFont, FALSE);
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -409,12 +426,27 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                         interval /= 60; //in the last hour, check every minute
                     }
                     if (DEBUG) {
-                        interval = 1000;
+                        interval = 5000;
                     }
                     SetTimer(hwnd, IDT_TIMER1, interval, NULL);
                 break;
             }
         break;
+
+	case WM_SIZE:
+	    if (DEBUG) {
+		fprintf(stderr, "WM_SIZE received in mainproc\n");
+	    }
+	    RECT rcClient;
+	    GetClientRect(hwnd, &rcClient);
+	    if (DEBUG) {
+		fprintf(stderr, "RECT: %ld, %ld, %ld, %ld\n", rcClient.left, rcClient.top,
+							rcClient.right, rcClient.bottom);
+	    }
+	    //MoveWindow(static_hwnd, 20, 10, rcClient.right/2, rcClient.bottom, TRUE);
+	    //MoveWindow(static_hwnd2, rcClient.right/2, 10, rcClient.right, rcClient.bottom, TRUE);
+	    
+	break;
 
         case WM_CLOSE:
             DestroyWindow(hwnd);
@@ -436,7 +468,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     HWND hwnd;
 
     wc.cbSize           = sizeof(WNDCLASSEX);
-    wc.style            = 0;
+    wc.style            = CS_HREDRAW | CS_VREDRAWA;
     wc.lpfnWndProc      = WndProc;
     wc.cbClsExtra       = 0;
     wc.cbWndExtra       = 0;
@@ -456,7 +488,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     }
 
     hwnd = CreateWindowEx(
-            WS_EX_CLIENTEDGE,
+            WS_EX_APPWINDOW,
             g_szClassName,
             PERSIAN ? window_title_fa : window_title_en,
             WS_OVERLAPPEDWINDOW,
