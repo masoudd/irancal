@@ -84,7 +84,9 @@ LPCTSTR window_title_en = TEXT("Iran Solar Hijri Calendar");
 LPCTSTR window_title_fa = TEXT("تقویم هجری شمسی");
 
 // need global handle to the font to call DeleteObject on it on exit.
-HFONT hFont;
+HFONT hFont = NULL;
+int font_size = 0;
+BOOLEAN vazir_font = FALSE;
 
 // these are random value, apparently that's how
 // it works. You just come up with something random
@@ -277,6 +279,46 @@ void init_menu()
             PERSIAN ? TEXT("خروج") : TEXT("E&xit"));
 }
 
+void init_font()
+{
+    int ret_addfont = AddFontResource(TEXT("Vazir-Code-Extra-Height.ttf"));
+    if (ret_addfont == 0) {
+        fprintf(stderr, "Error: Font file not found: Vazir-Code-Extra-Height.ttf\n");
+        fflush(stderr);
+        hFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
+	vazir_font = FALSE;
+    } else {
+	vazir_font = TRUE;
+    }
+}
+
+void set_font(int size)
+{
+    if ((!vazir_font) || (font_size == size)) {
+	if (DEBUG) {
+	    fprintf(stderr, "set_font(): vazir_font: %d, font_size==size: %d, returning\n",
+		    vazir_font, font_size == size);
+	    fflush(stderr);
+	}
+	return;
+    }
+
+    if (hFont) {
+	DeleteObject(hFont);
+    }
+    hFont = CreateFont(size, 0, 0, 0, 0, FALSE, FALSE, FALSE, ARABIC_CHARSET,
+		    OUT_DEFAULT_PRECIS, OUT_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+		    /* DEFAULT_PITCH */ FIXED_PITCH|FF_DONTCARE,
+		    TEXT("Vazir Code Extra Height"));
+
+    for (int i = 0; i < 12; i++) {
+	SendMessage(static_hwnd_months[i], WM_SETFONT, (WPARAM)hFont, FALSE);
+    }
+    SendMessage(static_hwnd_yeartitle, WM_SETFONT, (WPARAM)hFont, FALSE);
+    SendMessage(static_hwnd_credits, WM_SETFONT, (WPARAM)hFont, FALSE);
+    font_size = size;
+}
+
 //create a Label (called a static control in win23 api) to
 //show the year calendar in.
 void init_window_content(HWND hwnd, HINSTANCE hInstance)
@@ -350,21 +392,43 @@ void init_window_content(HWND hwnd, HINSTANCE hInstance)
 	    hInstance,
 	    NULL);
 
-    int ret_addfont = AddFontResource(TEXT("Vazir-Code-Extra-Height.ttf"));
-    if (ret_addfont == 0) {
-        fprintf(stderr, "Error: Font file not found: Vazir-Code-Extra-Height.ttf\n");
-        fflush(stderr);
-        hFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
-    } else {
-        hFont = CreateFont(20, 0, 0, 0, 0, FALSE, FALSE, FALSE, ARABIC_CHARSET,
-                OUT_DEFAULT_PRECIS, OUT_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
-                /* DEFAULT_PITCH */ FIXED_PITCH|FF_DONTCARE, TEXT("Vazir Code Extra Height"));
+    init_font();
+    set_font(20);
+}
+
+
+// dynamically change the position of window controls
+void flow_layout(long width, long height)
+{
+    int size_w = width / 30;
+    int size_h = height / 40;
+    int size = (size_w > size_h) ? size_h : size_w; //poor man's min()
+    BOOLEAN should_redraw = vazir_font && (size != font_size);
+    if (DEBUG) {
+	fprintf(stderr, "flow_layout(): should_redraw: %d\n", should_redraw);
     }
+    set_font(size);
+
+    MoveWindow(static_hwnd_yeartitle,
+	    0,
+	    10,
+	    width,
+	    30,
+	    should_redraw);
     for (int i = 0; i < 12; i++) {
-	SendMessage(static_hwnd_months[i], WM_SETFONT, (WPARAM)hFont, FALSE);
+	MoveWindow(static_hwnd_months[i],
+		20 + (i % 3) * ((width - 40)/3),
+		50 + (i / 3) * ((height - 200)/4),
+		(width - 40)/3,
+		(height - 200)/4,
+		should_redraw);
     }
-    SendMessage(static_hwnd_yeartitle, WM_SETFONT, (WPARAM)hFont, FALSE);
-    SendMessage(static_hwnd_credits, WM_SETFONT, (WPARAM)hFont, FALSE);
+    MoveWindow(static_hwnd_credits,
+	    20,
+	    height - 150,
+	    width - 40,
+	    font_size * 5,
+	    should_redraw);
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -453,6 +517,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		fprintf(stderr, "RECT: %ld, %ld, %ld, %ld\n", rcClient.left, rcClient.top,
 							rcClient.right, rcClient.bottom);
 	    }
+	    flow_layout(rcClient.right, rcClient.bottom);
 	    //MoveWindow(static_hwnd, 20, 10, rcClient.right/2, rcClient.bottom, TRUE);
 	    //MoveWindow(static_hwnd2, rcClient.right/2, 10, rcClient.right, rcClient.bottom, TRUE);
 	    
