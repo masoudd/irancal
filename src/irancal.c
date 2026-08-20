@@ -1,5 +1,5 @@
 ﻿/*
-	Copyright (C) 2024  Masoud Naservand
+	Copyright (C) 2024-2026  Masoud Naservand
 
 	This file is part of irancal.
 
@@ -381,7 +381,7 @@ void init_window_content(HWND hwnd, HINSTANCE hInstance)
     }
     static_hwnd_credits = CreateWindow(
 	    TEXT("STATIC"),
-	    TEXT("Irancal version: " IRANCAL_VERSION "\ngithub.com/masoudd/irancal\nBy Masoud Naservand masoudd.ir\nLicense: GPLv3"),
+	    TEXT("Irancal version: " IRANCAL_VERSION "\ngithub.com/masoudd/irancal\nBy Masoud Naservand, masoudd.ir\nLicense: GPLv3"),
 	    WS_CHILD | WS_VISIBLE | SS_LEFT,
 	    20,
 	    HEIGHT - 150,
