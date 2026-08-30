@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <time.h>
 
+#include "resource.h"
 #include "jalali.h"
 #include "jtime.h"
 
@@ -43,8 +44,8 @@
 
 /*
  * How it works:
- *  every WM_TIME proc update tooltip string and shown year calendar in window.
- *  also decide on how long next WM_TIME should be.
+ *  every WM_TIMER proc update tooltip string and shown year calendar in window.
+ *  also decide on how long next WM_TIMER should be.
  */
 
 /* Useful to change globals: */
@@ -233,12 +234,12 @@ void update_notification_and_window_content()
 
 
     StringCchCopy(nid.szTip, ARRAYSIZE(nid.szTip), date_string);
-    nid.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(100 + jtm.tm_mday));
+    nid.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_DAY_BASE + jtm.tm_mday));
 //    nid.hIcon = LoadIcon(GetModuleHandle(NULL), icon_name_array[jtm.tm_mday]);
 
     if (DEBUG) { // Change Icons every second
         nid.hIcon = LoadIcon(GetModuleHandle(NULL),
-                MAKEINTRESOURCE(101 + (jtm.tm_sec % 31)));
+                MAKEINTRESOURCE(IDI_DAY_BASE + 1 + (jtm.tm_sec % 31)));
     }
     Shell_NotifyIcon(NIM_MODIFY, &nid);
 
@@ -266,8 +267,8 @@ void init_notification(HWND hwnd)
 
     nid.uID = 1;
     nid.uFlags = NIF_TIP | NIF_ICON | NIF_SHOWTIP | NIF_MESSAGE;
-    nid.hIcon = LoadIcon(NULL, IDI_APPLICATION); // System icon
-//    nid.hIcon = LoadIcon(GetModuleHandle(NULL), TEXT("ICON_09") );
+//    nid.hIcon = LoadIcon(NULL, IDI_APPLICATION); // System icon
+    nid.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_MAIN));
     StringCchCopy(nid.szTip, ARRAYSIZE(nid.szTip), TEXT("Loading..."));
     nid.uVersion = NOTIFYICON_VERSION_4;
     nid.uCallbackMessage = MY_TRAY_ICON_MESSAGE;
@@ -556,12 +557,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     wc.cbClsExtra       = 0;
     wc.cbWndExtra       = 0;
     wc.hInstance        = hInstance;
-    wc.hIcon            = LoadIcon(NULL, IDI_APPLICATION);
+    wc.hIcon            = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MAIN));
     wc.hCursor          = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground    = (HBRUSH) (COLOR_WINDOW);
     wc.lpszMenuName     = NULL;
     wc.lpszClassName    = g_szClassName;
-    wc.hIconSm          = LoadIcon(NULL, IDI_APPLICATION);
+    wc.hIconSm          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MAIN)); 
 
     if (!RegisterClassEx(&wc))
     {
