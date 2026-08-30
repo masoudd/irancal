@@ -233,6 +233,46 @@ void update_notification_and_window_content()
 
 
     StringCchCopy(nid.szTip, ARRAYSIZE(nid.szTip), date_string);
+static LPCTSTR icon_name_array[] = {
+    TEXT(""),
+    TEXT("ICON_01"),
+    TEXT("ICON_02"),
+    TEXT("ICON_03"),
+    TEXT("ICON_04"),
+    TEXT("ICON_05"),
+    TEXT("ICON_06"),
+    TEXT("ICON_07"),
+    TEXT("ICON_08"),
+    TEXT("ICON_09"),
+    TEXT("ICON_10"),
+    TEXT("ICON_11"),
+    TEXT("ICON_12"),
+    TEXT("ICON_13"),
+    TEXT("ICON_14"),
+    TEXT("ICON_15"),
+    TEXT("ICON_16"),
+    TEXT("ICON_17"),
+    TEXT("ICON_18"),
+    TEXT("ICON_19"),
+    TEXT("ICON_20"),
+    TEXT("ICON_21"),
+    TEXT("ICON_22"),
+    TEXT("ICON_23"),
+    TEXT("ICON_24"),
+    TEXT("ICON_25"),
+    TEXT("ICON_26"),
+    TEXT("ICON_27"),
+    TEXT("ICON_28"),
+    TEXT("ICON_29"),
+    TEXT("ICON_30"),
+    TEXT("ICON_31"),
+};
+    nid.hIcon = LoadIcon(GetModuleHandle(NULL), icon_name_array[jtm.tm_mday]);
+
+    if (DEBUG) { // Change Icons every second
+        nid.hIcon = LoadIcon(GetModuleHandle(NULL),
+                icon_name_array[1 + (jtm.tm_sec % 31)]);
+    }
     Shell_NotifyIcon(NIM_MODIFY, &nid);
 
     for (int i = 0; i < 12; i++) {
@@ -259,7 +299,8 @@ void init_notification(HWND hwnd)
 
     nid.uID = 1;
     nid.uFlags = NIF_TIP | NIF_ICON | NIF_SHOWTIP | NIF_MESSAGE;
-    nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    nid.hIcon = LoadIcon(NULL, IDI_APPLICATION); // System icon
+//    nid.hIcon = LoadIcon(GetModuleHandle(NULL), TEXT("ICON_09") );
     StringCchCopy(nid.szTip, ARRAYSIZE(nid.szTip), TEXT("Loading..."));
     nid.uVersion = NOTIFYICON_VERSION_4;
     nid.uCallbackMessage = MY_TRAY_ICON_MESSAGE;
@@ -500,7 +541,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                         interval /= 60; //in the last hour, check every minute
                     }
                     if (DEBUG) {
-                        interval = 5000;
+                        interval = 1000;
                     }
                     SetTimer(hwnd, IDT_TIMER1, interval, NULL);
                 break;
