@@ -34,8 +34,8 @@
 #include "jalali.h"
 #include "jtime.h"
 
-#define IRANCAL_VERSION "0.4"
-#define IRANCAL_VERSION_LEN 5
+#define IRANCAL_VERSION "0.4.1"
+#define IRANCAL_VERSION_LEN 6
 
 #ifndef DEBUG
 #define DEBUG 0
@@ -233,45 +233,12 @@ void update_notification_and_window_content()
 
 
     StringCchCopy(nid.szTip, ARRAYSIZE(nid.szTip), date_string);
-static LPCTSTR icon_name_array[] = {
-    TEXT(""),
-    TEXT("ICON_01"),
-    TEXT("ICON_02"),
-    TEXT("ICON_03"),
-    TEXT("ICON_04"),
-    TEXT("ICON_05"),
-    TEXT("ICON_06"),
-    TEXT("ICON_07"),
-    TEXT("ICON_08"),
-    TEXT("ICON_09"),
-    TEXT("ICON_10"),
-    TEXT("ICON_11"),
-    TEXT("ICON_12"),
-    TEXT("ICON_13"),
-    TEXT("ICON_14"),
-    TEXT("ICON_15"),
-    TEXT("ICON_16"),
-    TEXT("ICON_17"),
-    TEXT("ICON_18"),
-    TEXT("ICON_19"),
-    TEXT("ICON_20"),
-    TEXT("ICON_21"),
-    TEXT("ICON_22"),
-    TEXT("ICON_23"),
-    TEXT("ICON_24"),
-    TEXT("ICON_25"),
-    TEXT("ICON_26"),
-    TEXT("ICON_27"),
-    TEXT("ICON_28"),
-    TEXT("ICON_29"),
-    TEXT("ICON_30"),
-    TEXT("ICON_31"),
-};
-    nid.hIcon = LoadIcon(GetModuleHandle(NULL), icon_name_array[jtm.tm_mday]);
+    nid.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(100 + jtm.tm_mday));
+//    nid.hIcon = LoadIcon(GetModuleHandle(NULL), icon_name_array[jtm.tm_mday]);
 
     if (DEBUG) { // Change Icons every second
         nid.hIcon = LoadIcon(GetModuleHandle(NULL),
-                icon_name_array[1 + (jtm.tm_sec % 31)]);
+                MAKEINTRESOURCE(101 + (jtm.tm_sec % 31)));
     }
     Shell_NotifyIcon(NIM_MODIFY, &nid);
 
