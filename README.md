@@ -1,5 +1,7 @@
 ![build badge](https://github.com/masoudd/irancal/actions/workflows/build.yml/badge.svg)
 
+[Download - دانلود](https://github.com/masoudd/irancal/releases/latest/download/irancal.zip)
+
 ![screenshot.png](screenshot.png)
 
 تاریخ هجری شمری را در ویندوز نشان می‌دهد.
