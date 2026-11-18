@@ -88,6 +88,7 @@ LPCTSTR window_title_fa = TEXT("تقویم هجری شمسی");
 HFONT hFont = NULL;
 int font_size = 0;
 BOOLEAN vazir_font = FALSE;
+LPCTSTR font_name = TEXT("Vazir-Code-Extra-Height.ttf");
 
 // these are random value, apparently that's how
 // it works. You just come up with something random
@@ -290,9 +291,9 @@ void init_menu()
 
 void init_font()
 {
-    int ret_addfont = AddFontResource(TEXT("Vazir-Code-Extra-Height.ttf"));
+    int ret_addfont = AddFontResource(font_name);
     if (ret_addfont == 0) {
-        fprintf(stderr, "Error: Font file not found: Vazir-Code-Extra-Height.ttf\n");
+        fprintf(stderr, "Error: Font file not found: %ws\n", font_name);
         fflush(stderr);
         hFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
 	vazir_font = FALSE;
@@ -631,6 +632,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 
     DeleteObject(hFont);
+    RemoveFontResource(font_name);
 
     return 0;
 }
