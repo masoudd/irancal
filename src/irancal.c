@@ -35,7 +35,7 @@
 #include "jalali.h"
 #include "jtime.h"
 
-#define IRANCAL_VERSION "0.4.1"
+#define IRANCAL_VERSION "0.4.2"
 #define IRANCAL_VERSION_LEN 6
 
 #ifndef DEBUG
